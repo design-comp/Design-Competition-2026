@@ -502,8 +502,9 @@
         var scaleX = canvas.width / rect.width;
         var scaleY = canvas.height / rect.height;
         
-        var clientX = evt.clientX;
-        var clientY = evt.clientY;
+        var point = evt.touches && evt.touches.length ? evt.touches[0] : (evt.changedTouches && evt.changedTouches.length ? evt.changedTouches[0] : evt);
+        var clientX = point.clientX;
+        var clientY = point.clientY;
         
         return {
             x: (clientX - rect.left) * scaleX,
@@ -525,11 +526,27 @@
         draw();
     }
 
-    canvas.addEventListener('pointerdown', function(e) {
+    function handlePointerDown(e) {
         if (e.pointerType === 'mouse' && e.button !== 0) return;
-        canvas.setPointerCapture(e.pointerId);
         handleClick(e);
-    });
+        if (canvas.setPointerCapture) {
+            try {
+                canvas.setPointerCapture(e.pointerId);
+            } catch (error) {
+                // 一部のタブレットではキャプチャ未対応でも、タップ指定自体は継続する。
+            }
+        }
+    }
+
+    if (window.PointerEvent) {
+        canvas.addEventListener('pointerdown', handlePointerDown);
+    } else {
+        canvas.addEventListener('mousedown', handleClick);
+        canvas.addEventListener('touchstart', function(e) {
+            if (isImageLoaded && !targetPos) e.preventDefault();
+            handleClick(e);
+        }, { passive: false });
+    }
 
     // マウス移動（スワイプ）イベントで矢印をプレビュー
     function handleMove(e) {
@@ -539,7 +556,15 @@
         draw();
     }
 
-    canvas.addEventListener('pointermove', handleMove);
+    if (window.PointerEvent) {
+        canvas.addEventListener('pointermove', handleMove);
+    } else {
+        canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('touchmove', function(e) {
+            if (isImageLoaded && routerPos && !targetPos) e.preventDefault();
+            handleMove(e);
+        }, { passive: false });
+    }
 
 </script>
 </body>
