@@ -247,7 +247,7 @@
 
     <div class="step-box">
         <div class="step-title">④ 反射方向</div>
-        <p>アップロードした画像上で、<strong>1. ルーターの場所をクリックまたはタップ</strong>し、<strong>2. 反射させたい方向をもう一度クリックまたはタップ</strong>してください。1回目の後は、マウスまたは指を動かすと方向を確認できます。</p>
+        <p>アップロードした画像上で、<strong>1. ルーターの場所をクリックまたはタップ</strong>してください。<strong>マウスは、動かしてからクリック</strong>すると方向を確定できます。<strong>タブレットは、反射させたい方向を押したまま指を動かし、指を離す</strong>と方向を確定できます。</p>
         
         <div id="canvas-container" style="border: 2px inset #999; background-color: #e0e0e0; text-align: center; position: relative; padding: 5px;">
             <canvas id="interactive-canvas" width="600" height="400" style="max-width: 100%; height: auto; cursor: crosshair; touch-action: none; background-color: #fff; border: 1px solid #ccc;"></canvas>
@@ -286,6 +286,7 @@
     var targetPos = null;  // 反射方向の座標 {x, y}
     var currentMousePos = null; // マウスの現在位置
     var isImageLoaded = false;
+    var isTouchDirectionAdjusting = false; // タブレットで方向を押したまま調整中か
 
     // --- ルーター選択UIの生成 ---
     var routerGrid = document.getElementById('router-grid');
@@ -403,6 +404,7 @@
         routerPos = null;
         targetPos = null;
         currentMousePos = null;
+        isTouchDirectionAdjusting = false;
         draw();
     }
 
@@ -512,60 +514,109 @@
         };
     }
 
-    // クリック（タップ）イベント
+    // マウスはクリックで確定、タブレットは2回目を押したまま調整して指を離すと確定する
     function handleClick(e) {
         if (!isImageLoaded) return;
-        
+
         var pos = getPointerPos(e);
-        
         if (!routerPos) {
-            routerPos = pos; // 1回目：ルーター位置
+            routerPos = pos;
         } else if (!targetPos) {
-            targetPos = pos; // 2回目：反射方向
+            targetPos = pos;
         }
         draw();
     }
 
+    function startTouchDirection(e) {
+        if (!isImageLoaded || targetPos) return;
+
+        var pos = getPointerPos(e);
+        if (!routerPos) {
+            routerPos = pos;
+        } else {
+            isTouchDirectionAdjusting = true;
+            currentMousePos = pos;
+        }
+        draw();
+    }
+
+    function updateTouchDirection(e) {
+        if (!isTouchDirectionAdjusting || targetPos) return;
+        currentMousePos = getPointerPos(e);
+        draw();
+    }
+
+    function finishTouchDirection(e) {
+        if (!isTouchDirectionAdjusting || targetPos) return;
+        targetPos = getPointerPos(e);
+        currentMousePos = null;
+        isTouchDirectionAdjusting = false;
+        draw();
+    }
+
     function handlePointerDown(e) {
-        if (e.pointerType === 'mouse' && e.button !== 0) return;
-        handleClick(e);
+        if (e.pointerType === 'mouse') {
+            if (e.button === 0) handleClick(e);
+            return;
+        }
+
+        startTouchDirection(e);
         if (canvas.setPointerCapture) {
             try {
                 canvas.setPointerCapture(e.pointerId);
             } catch (error) {
-                // 一部のタブレットではキャプチャ未対応でも、タップ指定自体は継続する。
+                // 一部のタブレットではキャプチャ未対応でも、操作自体は継続する。
             }
         }
     }
 
-    if (window.PointerEvent) {
-        canvas.addEventListener('pointerdown', handlePointerDown);
-    } else {
-        canvas.addEventListener('mousedown', handleClick);
-        canvas.addEventListener('touchstart', function(e) {
-            if (isImageLoaded && !targetPos) e.preventDefault();
-            handleClick(e);
-        }, { passive: false });
+    function handlePointerMove(e) {
+        if (e.pointerType === 'mouse') {
+            handleMove(e);
+        } else {
+            updateTouchDirection(e);
+        }
     }
 
-    // マウス移動（スワイプ）イベントで矢印をプレビュー
+    // マウス移動時の矢印プレビュー
     function handleMove(e) {
         if (!isImageLoaded || !routerPos || targetPos) return;
-        
         currentMousePos = getPointerPos(e);
         draw();
     }
 
     if (window.PointerEvent) {
-        canvas.addEventListener('pointermove', handleMove);
+        canvas.addEventListener('pointerdown', handlePointerDown);
+        canvas.addEventListener('pointermove', handlePointerMove);
+        canvas.addEventListener('pointerup', function(e) {
+            if (e.pointerType !== 'mouse') finishTouchDirection(e);
+        });
+        canvas.addEventListener('pointercancel', function() {
+            isTouchDirectionAdjusting = false;
+            currentMousePos = null;
+            draw();
+        });
     } else {
+        canvas.addEventListener('mousedown', handleClick);
         canvas.addEventListener('mousemove', handleMove);
+        canvas.addEventListener('touchstart', function(e) {
+            e.preventDefault();
+            startTouchDirection(e);
+        }, { passive: false });
         canvas.addEventListener('touchmove', function(e) {
-            if (isImageLoaded && routerPos && !targetPos) e.preventDefault();
-            handleMove(e);
+            e.preventDefault();
+            updateTouchDirection(e);
+        }, { passive: false });
+        canvas.addEventListener('touchend', function(e) {
+            e.preventDefault();
+            finishTouchDirection(e);
+        }, { passive: false });
+        canvas.addEventListener('touchcancel', function() {
+            isTouchDirectionAdjusting = false;
+            currentMousePos = null;
+            draw();
         }, { passive: false });
     }
-
 </script>
 </body>
 </html>
