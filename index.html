@@ -247,10 +247,10 @@
 
     <div class="step-box">
         <div class="step-title">④ 反射方向</div>
-        <p>アップロードした画像上で、<strong>1. ルーターの場所をクリック</strong>し、<strong>2. マウスを動かして反射させたい方向でもう一度クリック</strong>してください。</p>
+        <p>アップロードした画像上で、<strong>1. ルーターの場所をクリックまたはタップ</strong>し、<strong>2. 反射させたい方向をもう一度クリックまたはタップ</strong>してください。1回目の後は、マウスまたは指を動かすと方向を確認できます。</p>
         
         <div id="canvas-container" style="border: 2px inset #999; background-color: #e0e0e0; text-align: center; position: relative; padding: 5px;">
-            <canvas id="interactive-canvas" width="600" height="400" style="max-width: 100%; height: auto; cursor: crosshair; background-color: #fff; border: 1px solid #ccc;"></canvas>
+            <canvas id="interactive-canvas" width="600" height="400" style="max-width: 100%; height: auto; cursor: crosshair; touch-action: none; background-color: #fff; border: 1px solid #ccc;"></canvas>
             <div id="canvas-msg" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: #333; font-weight: bold; pointer-events: none; text-shadow: 1px 1px 0 #fff;">
                 サンプル画像を読み込んでいます
             </div>
@@ -497,18 +497,13 @@
     }
 
     // マウス・タッチの座標をCanvas内の座標に変換する
-    function getMousePos(evt) {
+    function getPointerPos(evt) {
         var rect = canvas.getBoundingClientRect();
         var scaleX = canvas.width / rect.width;
         var scaleY = canvas.height / rect.height;
         
         var clientX = evt.clientX;
         var clientY = evt.clientY;
-        
-        if (evt.touches && evt.touches.length > 0) {
-            clientX = evt.touches[0].clientX;
-            clientY = evt.touches[0].clientY;
-        }
         
         return {
             x: (clientX - rect.left) * scaleX,
@@ -520,7 +515,7 @@
     function handleClick(e) {
         if (!isImageLoaded) return;
         
-        var pos = getMousePos(e);
+        var pos = getPointerPos(e);
         
         if (!routerPos) {
             routerPos = pos; // 1回目：ルーター位置
@@ -530,26 +525,21 @@
         draw();
     }
 
-    canvas.addEventListener('mousedown', handleClick);
-    canvas.addEventListener('touchstart', function(e){ 
-        // 操作中は画面スクロールを止める
-        if(isImageLoaded && !targetPos) e.preventDefault(); 
-        handleClick(e); 
-    }, {passive: false});
+    canvas.addEventListener('pointerdown', function(e) {
+        if (e.pointerType === 'mouse' && e.button !== 0) return;
+        canvas.setPointerCapture(e.pointerId);
+        handleClick(e);
+    });
 
     // マウス移動（スワイプ）イベントで矢印をプレビュー
     function handleMove(e) {
         if (!isImageLoaded || !routerPos || targetPos) return;
         
-        currentMousePos = getMousePos(e);
+        currentMousePos = getPointerPos(e);
         draw();
     }
 
-    canvas.addEventListener('mousemove', handleMove);
-    canvas.addEventListener('touchmove', function(e){ 
-        if(isImageLoaded && routerPos && !targetPos) e.preventDefault(); 
-        handleMove(e); 
-    }, {passive: false});
+    canvas.addEventListener('pointermove', handleMove);
 
 </script>
 </body>
