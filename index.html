@@ -193,6 +193,52 @@
             font-family: monospace;
         }
 
+        .coming-soon-overlay {
+            position: fixed;
+            inset: 0;
+            z-index: 1000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background-color: rgba(0, 0, 0, 0.45);
+        }
+
+        .coming-soon-overlay[hidden] {
+            display: none;
+        }
+
+        .coming-soon-dialog {
+            width: min(360px, 100%);
+            box-sizing: border-box;
+            padding: 24px;
+            text-align: center;
+            background-color: #fff;
+            border: 3px solid #000080;
+            border-radius: 20px;
+            box-shadow: 5px 5px 0 #555;
+        }
+
+        .coming-soon-dialog h2 {
+            margin: 0 0 12px;
+            padding: 0;
+            background: none;
+            color: #000080;
+        }
+
+        .coming-soon-dialog p {
+            margin: 0 0 20px;
+        }
+
+
+        .coming-soon-image {
+            display: block;
+            width: 120px;
+            height: 120px;
+            margin: 0 auto 18px;
+            object-fit: cover;
+            border-radius: 50%;
+        }
     </style>
 </head>
 <body>
@@ -261,7 +307,7 @@
     </div>
 
     <div class="submit-section" style="text-align: center; margin-top: 20px;">
-        <button class="submit-btn" style="padding: 15px 30px; font-weight: bold; background-color: #ffe4e1;" onclick="alert('投稿フォームへ移動します（現在準備中）')">情報を投稿する</button>
+        <button class="submit-btn" style="padding: 15px 30px; font-weight: bold; background-color: #ffe4e1;" type="button" onclick="showComingSoon()">情報を投稿する</button>
     </div>
 
     <div style="margin-top: 60px; padding-top: 20px; border-top: 2px dotted #aaa; font-size: 0.9em; color: #555;">
@@ -272,6 +318,14 @@
 
 </div>
 
+<div id="coming-soon-overlay" class="coming-soon-overlay" hidden role="presentation" onclick="closeComingSoon(event)">
+    <section class="coming-soon-dialog" role="dialog" aria-modal="true" aria-labelledby="coming-soon-title">
+        <img class="coming-soon-image" src="C.jpg" alt="創造工学科のAIロボットマーク">
+        <h2 id="coming-soon-title">みんなの結果が集まるページを<br>準備しています</h2>
+        <p>測定データを共有し、<br>次の反射板づくりにつなげる機能<br>を開発中です。</p>
+        <button id="coming-soon-close" type="button" onclick="closeComingSoon()">閉じる</button>
+    </section>
+</div>
 <script>
     // --- 学生実験：Canvasを使った座標取得プログラム ---
     
@@ -616,6 +670,16 @@
             currentMousePos = null;
             draw();
         }, { passive: false });
+    }
+    function showComingSoon() {
+        var overlay = document.getElementById('coming-soon-overlay');
+        overlay.hidden = false;
+        document.getElementById('coming-soon-close').focus();
+    }
+
+    function closeComingSoon(event) {
+        if (event && event.target !== event.currentTarget) return;
+        document.getElementById('coming-soon-overlay').hidden = true;
     }
 </script>
 </body>
